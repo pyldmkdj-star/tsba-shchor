@@ -476,18 +476,6 @@ function getSavedRegions(){
 }
 function saveRegions(arr){ localStorage.setItem(KEY_REGIONS, JSON.stringify(arr)); }
 
-// ─── Alerts (IndexedDB-lite via localStorage) ──
-function getAlerts(){
-  try{ return JSON.parse(localStorage.getItem(KEY_ALERTS)||'[]'); }catch{ return []; }
-}
-function saveAlerts(arr){ localStorage.setItem(KEY_ALERTS, JSON.stringify(arr)); }
-
-function pruneAlerts(){
-  const cutoff = Date.now() - 24*60*60*1000;
-  const fresh = getAlerts().filter(a=>a.ts > cutoff);
-  saveAlerts(fresh);
-  return fresh;
-}
 
 // ═══════════════════════════════════════════════
 // RENDER HELPERS
@@ -564,15 +552,15 @@ async function subscribeToPush(){
   if(!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
   try{
     const reg = await navigator.serviceWorker.ready;
-    // Check if already subscribed
     let sub = await reg.pushManager.getSubscription();
-    if(sub) return sub;
-    // Create new subscription with VAPID key
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
-    localStorage.setItem(KEY_SUB, JSON.stringify(sub));
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    // Register with server so it can push to this device
+    await registerSubscriptionWithServer(sub);
     return sub;
   }catch(e){
     console.warn('Push subscribe failed:',e);
@@ -596,126 +584,40 @@ function showLocalNotification(title, body, image){
 }
 
 // ═══════════════════════════════════════════════
-// TELEGRAM POLLING
+// SERVER API
 // ═══════════════════════════════════════════════
-const BOT_TOKEN = '8803612361:AAE3aJxb5tfKDa2vZTXufCZHV4UmkIwYZqM';
-const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-let lastUpdateId = parseInt(localStorage.getItem('tz_last_update')||'0');
+// !! החלף כאן את ה-URL של השרת שתפרוס ב-Render !!
+const SERVER_URL = 'https://YOUR-SERVER.onrender.com';
 
-function isUrl(str){
-  try{new URL(str);return true;}catch{return false;}
-}
+let serverAlerts = []; // cache מהשרת
+let lastFetchTs = 0;
 
-function parseAlertMessage(text){
-  // Format: region\ndescription[\nimage_url]
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  if(lines.length<2) return null;
-  const region = lines[0];
-  let image=null;
-  let descLines=[];
-  for(let i=1;i<lines.length;i++){
-    if(i===lines.length-1 && isUrl(lines[i])) image=lines[i];
-    else descLines.push(lines[i]);
-  }
-  const desc=descLines.join('\n');
-  if(!REGIONS.includes(region) && region!==ALL_LABEL) return null;
-  return {region,desc,image};
-}
-
-async function fetchTelegramUpdates(){
+async function fetchAlertsFromServer(){
   try{
-    const url=`${TG_API}/getUpdates?offset=${lastUpdateId+1}&timeout=0&allowed_updates=["message"]`;
-    const res=await fetch(url);
-    const data=await res.json();
-    if(!data.ok) return;
-
-    for(const upd of data.result){
-      lastUpdateId=upd.update_id;
-      const msg=upd.message;
-      if(!msg||!msg.text) continue;
-
-      const chatId=msg.chat.id;
-      const text=msg.text.trim();
-
-      // Admin commands
-      if(text==='/start' || text==='הי' || text==='שלום'){
-        sendTgMessage(chatId,'ברוך הבא לבוט צבע שחור 🖤\n\nכדי לשלוח התראה:\nשלח את שם הישוב בשורה ראשונה ותיאור ההתראה בשורה שנייה.\n\nפקודות:\n/מחיקה - מחק כל ההתראות\n/סטטיסטיקה - צפה בסטטיסטיקות');
-        continue;
-      }
-      if(text==='/מחיקה'){
-        saveAlerts([]);
-        localStorage.setItem('tz_alerts_cleared',Date.now());
-        renderAlerts();
-        sendTgMessage(chatId,'✅ כל ההתראות נמחקו');
-        continue;
-      }
-      if(text==='/סטטיסטיקה'){
-        const stats = getStats();
-        sendTgMessage(chatId, stats);
-        continue;
-      }
-
-      // Parse alert
-      const parsed=parseAlertMessage(text);
-      if(!parsed){
-        sendTgMessage(chatId,'❌ פורמט לא תקין.\n\nשלח:\nשם הישוב\nתיאור ההתראה\n[קישור לתמונה - אופציונלי]');
-        continue;
-      }
-
-      // Store alert
-      const alerts=getAlerts();
-      const alert={
-        id: Date.now()+Math.random(),
-        region: parsed.region,
-        desc: parsed.desc,
-        image: parsed.image,
-        ts: Date.now()
-      };
-      alerts.unshift(alert);
-      saveAlerts(alerts);
-
-      // Notify users whose regions match
-      const userRegions=getSavedRegions();
-      const shouldNotify = userRegions.includes(ALL_LABEL) ||
-                           parsed.region===ALL_LABEL ||
-                           userRegions.includes(parsed.region);
-
-      if(shouldNotify){
-        const isAllHaretz = parsed.region===ALL_LABEL;
-        const title = isAllHaretz ? 'צבע שחור' : `צבע שחור ב${parsed.region}`;
-        showLocalNotification(title, parsed.desc, parsed.image);
-      }
-
-      renderAlerts();
-      sendTgMessage(chatId,'✅ ההתראה נשלחה בהצלחה!');
-    }
-
-    localStorage.setItem('tz_last_update', lastUpdateId);
+    const res = await fetch(`${SERVER_URL}/alerts`);
+    if(!res.ok) return;
+    const data = await res.json();
+    serverAlerts = data.alerts || [];
+    lastFetchTs = data.ts;
+    renderAlerts();
   }catch(e){
-    console.warn('Telegram poll error:',e);
+    console.warn('Server fetch error:', e);
   }
 }
 
-async function sendTgMessage(chatId, text){
+async function registerSubscriptionWithServer(sub){
+  if(!sub) return;
+  const regions = getSavedRegions();
   try{
-    await fetch(`${TG_API}/sendMessage`,{
+    await fetch(`${SERVER_URL}/subscribe`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({chat_id:chatId,text,parse_mode:'HTML'})
+      body: JSON.stringify({ subscription: sub.toJSON(), regions })
     });
-  }catch(e){console.warn('sendMessage error:',e);}
-}
-
-function getStats(){
-  const stored = getSavedRegions();
-  const alerts = getAlerts();
-  // We count unique region preferences saved on THIS device; real stats need a backend
-  let msg = `📊 סטטיסטיקות צבע שחור\n\n`;
-  msg += `📍 אזורים נבחרים (מכשיר זה): ${stored.length>0?stored.join(', '):'לא נבחרו'}\n`;
-  msg += `🔔 התראות פעילות (24 שעות): ${alerts.length}\n\n`;
-  msg += `(נתוני משתמשים מלאים זמינים רק עם שרת backend)`;
-  return msg;
+  }catch(e){
+    console.warn('Subscribe to server error:', e);
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -732,13 +634,11 @@ function timeAgo(ts){
 }
 
 function renderAlerts(){
-  pruneAlerts();
-  const alerts=getAlerts();
   const userRegions=getSavedRegions();
   const container=document.getElementById('alerts-list');
   container.innerHTML='';
 
-  const relevant=alerts.filter(a=>{
+  const relevant=serverAlerts.filter(a=>{
     if(userRegions.includes(ALL_LABEL)) return true;
     if(a.region===ALL_LABEL) return true;
     return userRegions.includes(a.region);
@@ -806,12 +706,16 @@ function renderSettingsPanel(filter=''){
       saved.map(r=>`<div class="region-tag">${r}<button class="remove" data-r="${r}">✕</button></div>`).join('')
     }</div>`;
     tags.querySelectorAll('.remove').forEach(btn=>{
-      btn.addEventListener('click',()=>{
+      btn.addEventListener('click',async()=>{
         let s=getSavedRegions().filter(x=>x!==btn.dataset.r);
         saveRegions(s);
         renderSettingsPanel(document.getElementById('settings-search').value);
         renderAlerts();
         updateNotifyBanner();
+        // עדכן שרת עם האזורים החדשים
+        const reg = await navigator.serviceWorker?.ready;
+        const sub = await reg?.pushManager?.getSubscription();
+        if(sub) await registerSubscriptionWithServer(sub);
       });
     });
   }
@@ -897,15 +801,14 @@ function showScreen(id){
 
 function goToApp(){
   showScreen('screen-app');
-  renderAlerts();
   updateNotifyBanner();
   startPolling();
 }
 
 function startPolling(){
   if(pollingInterval) return;
-  fetchTelegramUpdates();
-  pollingInterval=setInterval(fetchTelegramUpdates,10000);
+  fetchAlertsFromServer();
+  pollingInterval=setInterval(fetchAlertsFromServer, 5000); // כל 5 שניות
 }
 
 // ═══════════════════════════════════════════════
