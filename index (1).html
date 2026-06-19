@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>צבע שחור - מערכת ההתרעות להגנת בחורי הישיבות ואסירי עולם התורה</title>
+<meta name="description" content="הצטרפו למערכת 'צבע שחור' נרשמים ומקבלים התרעות מיידיות בזמן אמת על מעצרי בחורי ישיבות ואסירי עולם התורה"/>
+<meta name="keywords" content="צבע שחור, בחורי ישיבות, אסירי עולם התורה, התרעות, מעצרים, גיוס כפוי, ישיבה, חרדים, הגנה, התראות"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="צבע שחור"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="https://i.ibb.co/NdRLGW5x/notify.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-deep:#0a0a0f;--bg-card:#111118;--bg-surface:#16161f;--bg-hover:#1c1c28;
+  --border:rgba(255,255,255,0.07);--border-lit:rgba(255,255,255,0.13);
+  --red:#e53935;--red-glow:rgba(229,57,53,0.25);--red-dim:rgba(229,57,53,0.12);
+  --gold:#f5c842;--gold-dim:rgba(245,200,66,0.12);
+  --text-1:#f0f0f0;--text-2:#a0a0b8;--text-3:#5a5a72;
+  --radius:14px;--radius-lg:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg-deep);color:var(--text-1);min-height:100dvh;overflow-x:hidden;}
+.screen{display:none;min-height:100dvh;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ONBOARDING */
+#screen-onboarding{
+  align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(229,57,53,0.12) 0%,transparent 70%),var(--bg-deep);
+}
+.onboarding-inner{width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:32px;}
+.logo-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;animation:fadeDown .6s ease both;}
+.logo-wrap img{width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 24px var(--red));}
+.logo-name{font-size:2.4rem;font-weight:900;letter-spacing:-.02em;background:linear-gradient(135deg,#fff 30%,#e57373 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-sub{font-size:.85rem;color:var(--text-2);text-align:center;line-height:1.6;max-width:320px;}
+.region-card{width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;animation:fadeUp .6s .15s ease both;}
+.region-card h2{font-size:1.1rem;font-weight:700;margin-bottom:6px;}
+.region-card p{font-size:.82rem;color:var(--text-2);margin-bottom:18px;line-height:1.5;}
+.search-wrap{position:relative;margin-bottom:14px;}
+.search-wrap input{width:100%;padding:11px 40px 11px 14px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;color:var(--text-1);font-family:inherit;font-size:.9rem;outline:none;transition:border-color .2s;}
+.search-wrap input:focus{border-color:var(--red);}
+.search-wrap .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3);}
+.regions-list{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.region-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s;border:1px solid transparent;user-select:none;}
+.region-item:hover{background:var(--bg-hover);border-color:var(--border);}
+.region-item.selected{background:var(--red-dim);border-color:rgba(229,57,53,0.35);}
+.region-item.disabled{opacity:.4;pointer-events:none;}
+.region-item .check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-lit);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.region-item.selected .check{background:var(--red);border-color:var(--red);}
+.region-item .check svg{width:10px;height:10px;stroke:#fff;stroke-width:2.5;fill:none;display:none;}
+.region-item.selected .check svg{display:block;}
+.region-item .name{font-size:.9rem;font-weight:500;}
+.region-item.all-item .name{font-weight:700;color:#fff;}
+.region-divider{height:1px;background:var(--border);margin:4px 0;}
+.btn-primary{width:100%;padding:14px;border-radius:12px;background:var(--red);border:none;cursor:pointer;color:#fff;font-family:inherit;font-size:1rem;font-weight:700;transition:opacity .2s,transform .1s;margin-top:16px;}
+.btn-primary:hover{opacity:.9;}
+.btn-primary:active{transform:scale(.98);}
+.btn-primary:disabled{opacity:.4;cursor:default;}
+.btn-skip{background:none;border:none;color:var(--text-3);font-family:inherit;font-size:.82rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:4px;transition:color .2s;animation:fadeUp .6s .3s ease both;}
+.btn-skip:hover{color:var(--text-2);}
+
+/* MAIN APP */
+#screen-app{background:var(--bg-deep);}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);}
+.topbar-logo{display:flex;align-items:center;gap:10px;}
+.topbar-logo img{width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 0 8px var(--red));}
+.topbar-logo span{font-size:1.1rem;font-weight:800;letter-spacing:-.01em;}
+.topbar-actions{display:flex;gap:8px;}
+.icon-btn{width:38px;height:38px;border-radius:10px;background:var(--bg-surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2);transition:all .2s;font-size:1.1rem;}
+.icon-btn:hover{background:var(--bg-hover);color:var(--text-1);border-color:var(--border-lit);}
+.alerts-area{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:0 2px 4px;}
+.section-header h2{font-size:.78rem;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;}
+.live-dot{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--red);}
+.live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--red);animation:pulse 1.5s ease-in-out infinite;}
+.alert-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;gap:14px;align-items:flex-start;animation:slideIn .3s ease;transition:border-color .2s;position:relative;overflow:hidden;}
+.alert-card::before{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;background:var(--red);border-radius:0 var(--radius) var(--radius) 0;}
+.alert-card:hover{border-color:var(--border-lit);}
+.alert-icon{width:40px;height:40px;border-radius:10px;background:var(--red-dim);border:1px solid rgba(229,57,53,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem;}
+.alert-body{flex:1;min-width:0;}
+.alert-title{font-size:.88rem;font-weight:700;color:var(--text-1);margin-bottom:4px;line-height:1.4;}
+.alert-title .city{font-weight:900;color:#fff;}
+.alert-text{font-size:.83rem;color:var(--text-2);line-height:1.5;word-break:break-word;}
+.alert-time{font-size:.72rem;color:var(--text-3);margin-top:8px;}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:48px 24px;color:var(--text-3);}
+.empty-state .icon{font-size:3rem;opacity:.4;}
+.empty-state p{font-size:.9rem;line-height:1.6;}
+
+/* SETTINGS PANEL */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:80;display:none;backdrop-filter:blur(4px);}
+.panel-overlay.open{display:block;}
+.panel{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);border-radius:24px 24px 0 0;z-index:90;max-height:85dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.panel.open{transform:translateY(0);}
+.panel-handle{width:40px;height:4px;border-radius:2px;background:var(--border-lit);margin:14px auto 0;flex-shrink:0;}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.panel-header h3{font-size:1rem;font-weight:700;}
+.panel-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
+.settings-info{font-size:.82rem;color:var(--text-2);background:var(--bg-surface);border-radius:10px;padding:12px 14px;line-height:1.6;}
+.current-regions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+.region-tag{display:flex;align-items:center;gap:6px;background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.8rem;font-weight:500;}
+.region-tag .remove{width:16px;height:16px;border-radius:4px;background:rgba(229,57,53,0.15);border:none;cursor:pointer;color:var(--red);font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.panel-search-wrap{position:relative;}
+.panel-search-wrap input{width:100%;padding:10px 36px 10px 12px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;color:var(--text-1);font-family:inherit;font-size:.88rem;outline:none;transition:border-color .2s;}
+.panel-search-wrap input:focus{border-color:var(--red);}
+.panel-search-wrap .icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);}
+.panel-regions-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.btn-danger{width:100%;padding:13px;border-radius:12px;background:rgba(229,57,53,0.12);border:1px solid rgba(229,57,53,0.25);color:var(--red);font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-danger:hover{background:rgba(229,57,53,0.2);}
+
+/* BANNERS */
+.install-banner{margin:0 16px 4px;background:linear-gradient(135deg,var(--gold-dim),rgba(245,200,66,0.05));border:1px solid rgba(245,200,66,0.2);border-radius:var(--radius);padding:14px 16px;display:none;align-items:center;gap:12px;}
+.install-banner.visible{display:flex;}
+.install-banner .text{flex:1;font-size:.82rem;color:var(--text-2);line-height:1.5;}
+.install-banner .text strong{color:var(--gold);display:block;margin-bottom:2px;}
+.btn-install{background:var(--gold);color:#0a0a0f;border:none;font-family:inherit;font-size:.82rem;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:opacity .2s;flex-shrink:0;}
+.btn-install:hover{opacity:.85;}
+.notify-banner{margin:0 16px 4px;background:var(--red-dim);border:1px solid rgba(229,57,53,0.2);border-radius:var(--radius);padding:14px 16px;display:none;align-items:center;gap:12px;}
+.notify-banner.visible{display:flex;}
+.notify-banner .text{flex:1;font-size:.82rem;color:var(--text-2);line-height:1.5;}
+.notify-banner .text strong{color:#fff;display:block;margin-bottom:2px;}
+.btn-notify{background:var(--red);color:#fff;border:none;font-family:inherit;font-size:.82rem;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:opacity .2s;}
+.btn-notify:hover{opacity:.85;}
+.server-banner{margin:0 16px 4px;background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.3);border-radius:var(--radius);padding:14px 16px;display:none;align-items:center;gap:12px;}
+.server-banner.visible{display:flex;}
+.server-banner .text{flex:1;font-size:.8rem;color:var(--gold);line-height:1.5;}
+
+@keyframes fadeDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-lit);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<section id="screen-onboarding" class="screen">
+  <div class="onboarding-inner">
+    <div class="logo-wrap">
+      <img src="https://i.ibb.co/NdRLGW5x/notify.png" alt="צבע שחור"/>
+      <span class="logo-name">צבע שחור</span>
+      <p class="logo-sub">מערכת ההתרעות להגנת בחורי הישיבות ואסירי עולם התורה</p>
+    </div>
+    <div class="region-card">
+      <h2>בחר אזורי התראה</h2>
+      <p>בחר ישוב אחד או יותר לקבלת התראות מיידיות. ניתן לבחור "כל הארץ" לקבלת כל ההתראות.</p>
+      <div class="search-wrap">
+        <input type="search" id="onboard-search" placeholder="חפש ישוב..." autocomplete="off"/>
+        <span class="icon">🔍</span>
+      </div>
+      <div class="regions-list" id="onboard-list"></div>
+      <button class="btn-primary" id="btn-confirm-regions" disabled>אשר ועבור לאתר ←</button>
+    </div>
+    <button class="btn-skip" id="btn-skip">דלג (ללא קבלת התראות)</button>
+  </div>
+</section>
+
+<section id="screen-app" class="screen">
+  <header class="topbar">
+    <div class="topbar-logo">
+      <img src="https://i.ibb.co/NdRLGW5x/notify.png" alt=""/>
+      <span>צבע שחור</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="btn-open-settings" title="הגדרות אזורים">⚙️</button>
+      <button class="icon-btn" id="btn-pwa-install" title="התקן כאפליקציה" style="display:none">📲</button>
+    </div>
+  </header>
+
+  <div class="server-banner" id="server-banner">
+    <div class="text">⚠️ לא ניתן להתחבר לשרת ההתראות. בדוק את חיבור האינטרנט או נסה לרענן.</div>
+  </div>
+  <div class="install-banner" id="install-banner">
+    <div class="text"><strong>📲 התקן כאפליקציה</strong>קבל התראות גם כשהדפדפן סגור</div>
+    <button class="btn-install" id="btn-install-banner">התקן</button>
+  </div>
+  <div class="notify-banner" id="notify-banner">
+    <div class="text"><strong>🔔 אפשר התראות</strong>כדי לקבל התראות בזמן אמת</div>
+    <button class="btn-notify" id="btn-grant-notify">אפשר</button>
+  </div>
+
+  <main class="alerts-area" id="alerts-area">
+    <div class="section-header">
+      <h2>התראות אחרונות — 24 שעות</h2>
+      <span class="live-dot">עדכון חי</span>
+    </div>
+    <div id="alerts-list"></div>
+  </main>
+</section>
+
+<div class="panel-overlay" id="panel-overlay"></div>
+<div class="panel" id="settings-panel">
+  <div class="panel-handle"></div>
+  <div class="panel-header">
+    <h3>⚙️ אזורי התראה</h3>
+    <button class="icon-btn" id="btn-close-settings" style="width:30px;height:30px;font-size:.9rem">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="settings-info" id="settings-info-text"></div>
+    <div id="current-tags"></div>
+    <div class="panel-search-wrap">
+      <input type="search" id="settings-search" placeholder="הוסף אזור..." autocomplete="off"/>
+      <span class="icon">🔍</span>
+    </div>
+    <div class="panel-regions-list" id="settings-list"></div>
+    <button class="btn-danger" id="btn-clear-regions">🗑 הסר את כל האזורים</button>
+  </div>
+</div>
+
+<script>
+const ALL_LABEL = 'כל הארץ';
+const REGIONS = [
+  ALL_LABEL,
+  'אבן יהודה','אופקים','אור יהודה','אור עקיבא','אורנית','אזור','אילת','אלעד','אלפי מנשה',
+  'אלקנה','אפרת','אריאל','אשדוד','אשקלון','באר יעקב','באר שבע','בית דגן','בית שאן',
+  'בית שמש','ביתר עילית','בני ברק','בני עי"ש','בנימינה גבעת עדה','בת ים','בת חפר',
+  'גבעת זאב','גבעת שמואל','גבעתיים','גדרה','גן יבנה','דימונה','הוד השרון','הרצליה',
+  'זכרון יעקב','חדרה','חולון','חיפה','חצור הגלילית','חריש','טבריה','טירת כרמל','יבנה',
+  'יהוד מונסון','יקנעם עילית','ירושלים','כוכב יאיר צור יגאל','כפר ורדים','כפר חב"ד',
+  'כפר יונה','כפר סבא','כפר תבור','כרמיאל','להבים','מבשרת ציון','מגדל העמק',
+  'מודיעין עילית','מודיעין מכבים רעות','מזכרת בתיה','מיתר','מעלה אדומים','מצפה רמון',
+  'נהריה','נס ציונה','נשר','נתיבות','נתניה','עילומי (עומר)','עמנואל','עפולה','ערד',
+  'עתלית','פרדס חנה כרכור','פרדסיה','פתח תקווה','צור הדסה','צור יצחק','צפת','קיסריה',
+  'קצרין','קדומים','קרית אונו','קרית ארבע','קרית אתא','קרית ביאליק','קרית גת',
+  'קרית טבעון','קרית ים','קרית יערים','קרית מוצקין','קרית מלאכי','קרית עקרון',
+  'קרית שמונה','קרני שומרון','ראש העין','ראשון לציון','רחובות','רמת גן','רמת השרון',
+  'רמת ישי','רעננה','רכסים','שדרות','שוהם','שלומי','תל אביב-יפו','תל מונד'
+];
+
+// ═══════════════════════ CONFIG ═══════════════════════
+// !! חובה: עדכן את הכתובת הזו לכתובת השרת שלך מ-Render !!
+const SERVER_URL = 'https://tsba-shchor.onrender.com';
+
+const VAPID_PUBLIC_KEY = 'BLOlBL1N3z7j7cTeVPYX1cLBHPql08czYV6FBw-Ta0sCu0QWiSfnsIX79o3i5QoiHEJe1wQwKuZ1RiLhLN5-oHA';
+
+// ═══════════════════════ STATE ═══════════════════════
+let selectedRegions = new Set();
+let deferredInstall = null;
+let pollingInterval = null;
+let serverAlerts = [];
+let serverReachable = true;
+
+const KEY_REGIONS   = 'tz_regions';
+const KEY_ONBOARDED = 'tz_onboarded';
+
+// ═══════════════════ STORAGE ═════════════════════════
+function getSavedRegions(){ try{ return JSON.parse(localStorage.getItem(KEY_REGIONS)||'[]'); }catch{ return []; } }
+function saveRegions(arr){ localStorage.setItem(KEY_REGIONS, JSON.stringify(arr)); }
+
+// ═══════════════════ PUSH / NOTIFY ═══════════════════
+function urlBase64ToUint8Array(b64){
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const base64 = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function requestNotifyPermission(){
+  if(!('Notification' in window)) return false;
+  if(Notification.permission === 'granted') return true;
+  return (await Notification.requestPermission()) === 'granted';
+}
+
+async function subscribeToPush(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    await registerSubscriptionWithServer(sub);
+    return sub;
+  }catch(e){ console.warn('Push subscribe failed:', e); return null; }
+}
+
+async function registerSubscriptionWithServer(sub){
+  if(!sub) return;
+  try{
+    await fetch(SERVER_URL + '/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), regions: getSavedRegions() })
+    });
+  }catch(e){ console.warn('Server subscribe failed:', e); }
+}
+
+async function refreshServerSubscription(){
+  if(!('serviceWorker' in navigator)) return;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if(sub) await registerSubscriptionWithServer(sub);
+  }catch(e){}
+}
+
+function showLocalNotification(title, body, image){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  navigator.serviceWorker.ready.then(reg => {
+    reg.showNotification(title, {
+      body,
+      icon: 'https://i.ibb.co/NdRLGW5x/notify.png',
+      badge: 'https://i.ibb.co/NdRLGW5x/notify.png',
+      image: image || undefined,
+      dir: 'rtl', lang: 'he',
+      vibrate: [200, 100, 200],
+      tag: 'tzeva-' + Date.now(),
+      renotify: true
+    });
+  });
+}
+
+// ═══════════════════ SERVER SYNC ═════════════════════
+async function fetchAlertsFromServer(){
+  try{
+    const res = await fetch(SERVER_URL + '/alerts');
+    if(!res.ok) throw new Error('bad status ' + res.status);
+    const data = await res.json();
+    serverAlerts = data.alerts || [];
+    setServerReachable(true);
+    renderAlerts();
+  }catch(e){
+    console.warn('Server fetch error:', e);
+    setServerReachable(false);
+  }
+}
+
+function setServerReachable(ok){
+  if(serverReachable === ok) return;
+  serverReachable = ok;
+  document.getElementById('server-banner').classList.toggle('visible', !ok);
+}
+
+// ═══════════════════ RENDERING ═══════════════════════
+function timeAgo(ts){
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(m / 60);
+  if(m < 1) return 'עכשיו';
+  if(m < 60) return 'לפני ' + m + ' דק׳';
+  if(h < 24) return 'לפני ' + h + ' שע׳';
+  return 'לפני יותר מיום';
+}
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderAlerts(){
+  const userRegions = getSavedRegions();
+  const container = document.getElementById('alerts-list');
+  if(!container) return;
+  container.innerHTML = '';
+
+  const relevant = serverAlerts.filter(a => {
+    if(userRegions.includes(ALL_LABEL)) return true;
+    if(a.region === ALL_LABEL) return true;
+    return userRegions.includes(a.region);
+  });
+
+  if(relevant.length === 0){
+    container.innerHTML = '<div class="empty-state"><div class="icon">🛡️</div><p>אין התראות פעילות ב-24 השעות האחרונות באזורים שלך</p></div>';
+    return;
+  }
+
+  relevant.forEach(a => {
+    const isAll = a.region === ALL_LABEL;
+    const titleHtml = isAll
+      ? '<span class="city">צבע שחור</span>'
+      : 'צבע שחור ב<span class="city">' + a.region + '</span>';
+    const card = document.createElement('div');
+    card.className = 'alert-card';
+    card.innerHTML =
+      '<div class="alert-icon">🚨</div>' +
+      '<div class="alert-body">' +
+        '<div class="alert-title">' + titleHtml + '</div>' +
+        '<div class="alert-text">' + escHtml(a.desc) + '</div>' +
+        '<div class="alert-time">' + timeAgo(a.ts) + '</div>' +
+      '</div>';
+    container.appendChild(card);
+  });
+}
+
+// ═══════════════════ REGION LIST UI ══════════════════
+function checkSVG(){ return '<svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg>'; }
+
+function buildRegionList(containerId, selectedSet, onClickFn, filter){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const q = (filter||'').trim().toLowerCase();
+  let addedDivider = false;
+
+  REGIONS.forEach(r => {
+    if(q && !r.includes(q)) return;
+    if(r !== ALL_LABEL && !addedDivider){
+      const div = document.createElement('div'); div.className = 'region-divider';
+      container.appendChild(div); addedDivider = true;
+    }
+    const isSel = selectedSet.has(r);
+    const isAllSel = selectedSet.has(ALL_LABEL);
+    const disabled = r !== ALL_LABEL && isAllSel;
+    const item = document.createElement('div');
+    item.className = 'region-item' + (r === ALL_LABEL ? ' all-item' : '') + (isSel ? ' selected' : '') + (disabled ? ' disabled' : '');
+    item.innerHTML = '<div class="check">' + checkSVG() + '</div><span class="name">' + r + '</span>';
+    item.addEventListener('click', () => onClickFn(r));
+    container.appendChild(item);
+  });
+}
+
+// ═══════════════════ ONBOARDING ══════════════════════
+function buildOnboardList(filter){
+  buildRegionList('onboard-list', selectedRegions, r => {
+    if(r === ALL_LABEL){
+      if(selectedRegions.has(ALL_LABEL)) selectedRegions.delete(ALL_LABEL);
+      else { selectedRegions.clear(); selectedRegions.add(ALL_LABEL); }
+    } else {
+      if(selectedRegions.has(ALL_LABEL)) return;
+      if(selectedRegions.has(r)) selectedRegions.delete(r);
+      else selectedRegions.add(r);
+    }
+    buildOnboardList(document.getElementById('onboard-search').value);
+    document.getElementById('btn-confirm-regions').disabled = selectedRegions.size === 0;
+  }, filter);
+}
+
+// ═══════════════════ SETTINGS PANEL ══════════════════
+let settingsOpen = false;
+
+function openSettings(){
+  settingsOpen = true;
+  document.getElementById('settings-panel').classList.add('open');
+  document.getElementById('panel-overlay').classList.add('open');
+  renderSettingsPanel();
+}
+function closeSettings(){
+  settingsOpen = false;
+  document.getElementById('settings-panel').classList.remove('open');
+  document.getElementById('panel-overlay').classList.remove('open');
+}
+
+function renderSettingsPanel(filter){
+  const saved = getSavedRegions();
+  const savedSet = new Set(saved);
+
+  document.getElementById('settings-info-text').textContent =
+    saved.length === 0
+      ? 'לא נבחרו אזורים. בחר ישובים להתחלת קבלת התראות.'
+      : 'מקבל התראות מ: ' + (savedSet.has(ALL_LABEL) ? 'כל הארץ' : saved.join(', ')) + '.';
+
+  const tags = document.getElementById('current-tags');
+  if(saved.length > 0){
+    tags.innerHTML = '<div class="current-regions">' +
+      saved.map(r => '<div class="region-tag">' + r + '<button class="remove" data-r="' + r + '">✕</button></div>').join('') +
+      '</div>';
+    tags.querySelectorAll('.remove').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        saveRegions(getSavedRegions().filter(x => x !== btn.dataset.r));
+        renderSettingsPanel(document.getElementById('settings-search').value);
+        renderAlerts(); updateNotifyBanner();
+        await refreshServerSubscription();
+      });
+    });
+  } else { tags.innerHTML = ''; }
+
+  buildRegionList('settings-list', savedSet, async r => {
+    let s = getSavedRegions();
+    if(r === ALL_LABEL){
+      s = s.includes(ALL_LABEL) ? s.filter(x => x !== ALL_LABEL) : [ALL_LABEL];
+    } else {
+      if(s.includes(ALL_LABEL)) return;
+      s = s.includes(r) ? s.filter(x => x !== r) : [...s, r];
+    }
+    saveRegions(s);
+    renderSettingsPanel(document.getElementById('settings-search').value);
+    renderAlerts(); updateNotifyBanner();
+    await refreshServerSubscription();
+  }, filter);
+}
+
+// ═══════════════════ BANNERS ═════════════════════════
+function updateNotifyBanner(){
+  const show = getSavedRegions().length > 0 && 'Notification' in window && Notification.permission !== 'granted';
+  document.getElementById('notify-banner').classList.toggle('visible', show);
+}
+
+// ═══════════════════ PWA INSTALL ═════════════════════
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredInstall = e;
+  document.getElementById('install-banner').classList.add('visible');
+  document.getElementById('btn-pwa-install').style.display = 'flex';
+});
+async function triggerInstall(){
+  if(!deferredInstall) return;
+  deferredInstall.prompt();
+  const {outcome} = await deferredInstall.userChoice;
+  if(outcome === 'accepted') document.getElementById('install-banner').classList.remove('visible');
+  deferredInstall = null;
+}
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').classList.remove('visible');
+  document.getElementById('btn-pwa-install').style.display = 'none';
+});
+
+// ═══════════════════ ROUTING ═════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goToApp(){
+  showScreen('screen-app');
+  updateNotifyBanner();
+  startPolling();
+}
+
+function startPolling(){
+  if(pollingInterval) return;
+  fetchAlertsFromServer();
+  pollingInterval = setInterval(fetchAlertsFromServer, 5000);
+}
+
+// ═══════════════════ INIT ════════════════════════════
+async function init(){
+  if('serviceWorker' in navigator){
+    try{ await navigator.serviceWorker.register('sw.js'); }catch(e){ console.warn('SW failed:', e); }
+  }
+
+  if(localStorage.getItem(KEY_ONBOARDED) === 'yes'){
+    goToApp();
+    return;
+  }
+
+  showScreen('screen-onboarding');
+  buildOnboardList();
+
+  document.getElementById('onboard-search').addEventListener('input', e => buildOnboardList(e.target.value));
+
+  document.getElementById('btn-confirm-regions').addEventListener('click', async () => {
+    saveRegions([...selectedRegions]);
+    localStorage.setItem(KEY_ONBOARDED, 'yes');
+    const granted = await requestNotifyPermission();
+    if(granted) await subscribeToPush();
+    goToApp();
+  });
+
+  document.getElementById('btn-skip').addEventListener('click', () => {
+    // לא שומר KEY_ONBOARDED — ישאל שוב בכניסה הבאה
+    goToApp();
+  });
+}
+
+// ═══════════════════ EVENT LISTENERS ═════════════════
+document.getElementById('btn-open-settings').addEventListener('click', openSettings);
+document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
+document.getElementById('panel-overlay').addEventListener('click', closeSettings);
+document.getElementById('settings-search').addEventListener('input', e => renderSettingsPanel(e.target.value));
+document.getElementById('btn-clear-regions').addEventListener('click', async () => {
+  saveRegions([]); renderSettingsPanel(); renderAlerts(); updateNotifyBanner();
+  await refreshServerSubscription();
+});
+document.getElementById('btn-install-banner').addEventListener('click', triggerInstall);
+document.getElementById('btn-pwa-install').addEventListener('click', triggerInstall);
+document.getElementById('btn-grant-notify').addEventListener('click', async () => {
+  const granted = await requestNotifyPermission();
+  if(granted){
+    document.getElementById('notify-banner').classList.remove('visible');
+    await subscribeToPush();
+    showLocalNotification('צבע שחור', 'מעולה! תקבל התראות בזמן אמת 🖤');
+  }
+});
+
+init();
+</script>
+</body>
+</html>
