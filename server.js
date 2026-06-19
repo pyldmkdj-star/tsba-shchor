@@ -13,7 +13,6 @@ app.use(cors());
 const BOT_TOKEN = '8803612361:AAE3aJxb5tfKDa2vZTXufCZHV4UmkIwYZqM';
 const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const PORT = process.env.PORT || 3000;
-const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 
 const VAPID_PUBLIC  = 'BLOlBL1N3z7j7cTeVPYX1cLBHPql08czYV6FBw-Ta0sCu0QWiSfnsIX79o3i5QoiHEJe1wQwKuZ1RiLhLN5-oHA';
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY; // set in Render environment variable
@@ -123,19 +122,34 @@ async function sendTgMessage(chatId, text) {
 }
 
 // ═══════════════════════════════════════════════
-// TELEGRAM WEBHOOK
+// TELEGRAM BOT — POLLING MODE
 // ═══════════════════════════════════════════════
-app.post('/webhook', async (req, res) => {
-  res.sendStatus(200); // Answer Telegram immediately
+let lastUpdateId = 0;
 
-  const upd = req.body;
-  const msg = upd.message;
-  if (!msg || !msg.text) return;
+async function pollTelegram(){
+  try{
+    const url = `${TG_API}/getUpdates?offset=${lastUpdateId+1}&timeout=30`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(!data.ok) return;
 
+    for(const upd of data.result){
+      lastUpdateId = upd.update_id;
+      await handleTelegramMessage(upd.message);
+    }
+  }catch(e){
+    console.error('Polling error:', e.message);
+  }finally{
+    // Immediately poll again (long-polling style)
+    setTimeout(pollTelegram, 1000);
+  }
+}
+
+async function handleTelegramMessage(msg){
+  if(!msg || !msg.text) return;
   const chatId = msg.chat.id;
   const text = msg.text.trim();
 
-  // Commands
   if (text === '/start') {
     await sendTgMessage(chatId,
       'ברוך הבא לבוט צבע שחור 🖤\n\n' +
@@ -176,7 +190,6 @@ app.post('/webhook', async (req, res) => {
     return;
   }
 
-  // Parse as alert
   const parsed = parseAlertMessage(text);
   if (!parsed) {
     await sendTgMessage(chatId,
@@ -201,7 +214,7 @@ app.post('/webhook', async (req, res) => {
   await sendTgMessage(chatId,
     `✅ ההתראה נשלחה!\n📍 אזור: ${parsed.region}\n👥 נשלח ל-${sent} מנויים`
   );
-});
+}
 
 // ═══════════════════════════════════════════════
 // CLIENT API ROUTES
@@ -241,24 +254,20 @@ app.get('/alerts', (req, res) => {
 app.get('/', (req, res) => res.json({ status: 'ok', subscribers: subscribers.length, alerts: alerts.length }));
 
 // ═══════════════════════════════════════════════
-// SET WEBHOOK ON STARTUP
+// STARTUP — clear any old webhook, start polling
 // ═══════════════════════════════════════════════
-async function setWebhook() {
-  if (!SERVER_URL || SERVER_URL.includes('localhost')) return;
+async function startBot() {
   try {
-    const r = await fetch(`${TG_API}/setWebhook`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: `${SERVER_URL}/webhook` })
-    });
-    const d = await r.json();
-    console.log('Webhook set:', d.description);
+    // Make sure no webhook is set (webhook and polling conflict)
+    await fetch(`${TG_API}/deleteWebhook`);
+    console.log('Webhook removed — switching to polling mode');
   } catch (e) {
-    console.error('Webhook error:', e.message);
+    console.error('deleteWebhook error:', e.message);
   }
+  pollTelegram();
 }
 
 app.listen(PORT, async () => {
   console.log(`🖤 צבע שחור שרת רץ על פורט ${PORT}`);
-  await setWebhook();
+  await startBot();
 });
